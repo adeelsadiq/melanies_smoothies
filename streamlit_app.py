@@ -1,59 +1,105 @@
-# Import python packages
-import streamlit as st
-from snowflake.snowpark.context import get_active_session
-from snowflake.snowpark.functions import col
-import requests
-import pandas as pd
+select grader(step, (actual = expected), actual, expected, description) as graded_results from 
+  ( SELECT 
+  'DORA_IS_WORKING' as step
+ ,(select 223) as actual
+ , 223 as expected
+ ,'Dora is working!' as description
+); 
 
-# Write directly to the app
-st.title(f":cup_with_straw: Customize Your Smoothie :cup_with_straw: ")
-st.write(
-  """Choose the fruit you want in your custom smoothieeee
-  """
-)
+select GRADER(step, (actual = expected), actual, expected, description) as graded_results from (
+  SELECT 'DABW001' as step
+ ,( select count(*) 
+   from SMOOTHIES.PUBLIC.FRUIT_OPTIONS) as actual
+ , 25 as expected
+ ,'Fruit Options table looks good' as description
+);
 
-cnx= st.connection("snowflake")
-session = cnx.session()
-name_on_order = st.text_input("Name on Smoothie:", "")
-st.write("the name on your smoothie will be: ", name_on_order)
+select GRADER(step, (actual = expected), actual, expected, description) as graded_results from (
+SELECT 'DABW002' as step
+ ,(select IFF(count(*)>=5,5,0)
+    from (select ingredients from smoothies.public.orders
+    group by ingredients)
+ ) as actual
+ ,  5 as expected
+ ,'At least 5 different orders entered' as description
+);
 
-my_dataframe = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAME'), col('SEARCH_ON'))
-st.dataframe(data=my_dataframe, use_container_width= True)
-st.stop()
+-- 3
+select GRADER(step, (actual = expected), actual, expected, description) as graded_results from (
+  SELECT 'DABW003' as step
+ ,(select ascii(fruit_name) from smoothies.public.fruit_options
+where fruit_name ilike 'z%') as actual
+ , 90 as expected
+ ,'A mystery check for the inquisitive' as description
+);
 
-#convert snowflake dataframe to pandas dataframe
-pd_df = my_dataframe.to_pandas()
+--4
 
-ingredients_list = st.multiselect(
-    'Choose up to five ingredients:',
-    my_dataframe,
-    max_selections=5
-)
+select GRADER(step, (actual = expected), actual, expected, description) as graded_results from (
+  SELECT 'DABW004' as step
+ ,( select count(*) from smoothies.information_schema.columns
+    where table_schema = 'PUBLIC' 
+    and table_name = 'ORDERS'
+    and column_name = 'ORDER_FILLED'
+    and column_default = 'FALSE'
+    and data_type = 'BOOLEAN') as actual
+ , 1 as expected
+ ,'Order Filled is Boolean' as description
+);
 
-if ingredients_list: 
-    st.write("""Your selection is: """)
-    ingredients_string = ''
+--5
 
-    for fruit_chosen in ingredients_list:
-        ingredients_string += fruit_chosen+' '
+select GRADER(step, (actual = expected), actual, expected, description) as graded_results from (
+ SELECT 'DABW005' as step
+ ,(select IFF(count(*)>=2, 2, 0) as num_sis_apps
+    from (
+        select count(*) as tally
+        from snowflake.account_usage.query_history
+        where query_text like 'execute streamlit%'
+        group by query_text)
+ ) as actual
+ , 2 as expected
+ ,'There seem to be 2 SiS Apps' as description
+);
 
-        search_on=pd_df.loc[pd_df['FRUIT_NAME'] == fruit_chosen, 'SEARCH_ON'].iloc[0]
-        st.write('The search value for ', fruit_chosen,' is ', search_on, '.')
+set this = -10.5;
+set that = 2;
+set the_other =  1000;
 
-        st.subheader(fruit_chosen + ' Nutrition Information')
-        smoothiefroot_response = requests.get("https://fruityvice.com/api/fruit/" + search_on)
-        sf_df = st.dataframe(data=smoothiefroot_response.json(), use_container_width = True)
+create function sum_mystery_bag_vars(var1 number, var2 number, var3 number) returns number as 'select var1+var2+var3';
+--6
+select GRADER(step, (actual = expected), actual, expected, description) as graded_results from (
+  SELECT 'DABW006' as step
+ ,( select util_db.public.sum_mystery_bag_vars($this,$that,$the_other)) as actual
+ , 991.5 as expected
+ ,'Mystery Bag Function Output' as description
+);
 
-    st.write(ingredients_string)
-    my_insert_stmt = """ insert into smoothies.public.orders(ingredients, name_on_order)values 
-    ('""" + ingredients_string + """','"""+name_on_order+"""')"""
-    st.write(my_insert_stmt)
-    # st.stop()
-    time_to_insert = st.button('Submit Order')
-    
-    if time_to_insert:
-        session.sql(my_insert_stmt).collect()
-        st.success('Your Smoothie is ordered, '+name_on_order+'! ', icon="✅") 
-# st.text(smoothiefroot_response.json())
+create function NEUTRALIZE_WHINING(var1 text) returns text as 'initcap(var1)';
 
-# st.dataframe(data=my_dataframe, use_container_width=True)
+select NEUTRALIZE_WHINING('oH mY gOd');
+
+--7
+
+select GRADER(step, (actual = expected), actual, expected, description) as graded_results from (
+ SELECT 'DABW007' as step
+ ,( select hash(neutralize_whining('bUt mOm i wAsHeD tHe dIsHes yEsTeRdAy'))) as actual
+ , -4759027801154767056 as expected
+ ,'WHINGE UDF Works' as description
+);
+
+
+select GRADER(step, (actual = expected), actual, expected, description) as graded_results from (
+   SELECT 'DABW008' as step 
+   ,( select sum(hash_ing) from
+      (select hash(ingredients) as hash_ing
+       from smoothies.public.orders
+       where order_ts is not null 
+       and name_on_order is not null 
+       and (name_on_order = 'Kevin' and order_filled = FALSE and hash_ing = 7976616299844859825) 
+       or (name_on_order ='Divya' and order_filled = TRUE and hash_ing = -6112358379204300652)
+       or (name_on_order ='Xi' and order_filled = TRUE and hash_ing = 1016924841131818535))
+     ) as actual 
+   , 2881182761772377708 as expected 
+   ,'Followed challenge lab directions' as description
+); 
